@@ -27,7 +27,7 @@ class tracker:
 
 		#set subscribe
 		self.bbox_sub = rospy.Subscriber('/tracked_boxes', BoundingBoxes, self.boxcallback)
-		self.depth_sub = rospy.Subscriber('/camera/align_to_depth/image_raw', Image, self.depthcallback)
+		self.depth_sub = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image, self.depthcallback)
 		#self.gui_sub = rospy.Subscriber('/GUI_end', bool, self.guicallback)
 		#self.cycle_sub = rospy.Subscriber('/cycle_reset', bool, self.cyclecallback)
 		#self.rfid_sub = rospy.Subscriber('/RFID', bool, self.RFIDcallback)
@@ -95,33 +95,32 @@ class tracker:
 		elif self.tracking_mode == 2:
 			
 			if self.RFID_check == False:
-				if len(detectbox.bounding_boxes) > 0:
-          
-         				for box in range(len(detectbox.bounding_boxes)):
+				
+         			for box in range(len(detectbox.bounding_boxes)):
             
-						bbox = detectbox.bounding_boxes[box]
-						if self.tracking_id == bbox.id:
-							center_x = round((bbox.xmin + bbox.xmax)/2)
-							center_y = round((bbox.ymin + bbox.ymax)/2)
-							distance = round(self.depth[int(center_y), int(center_x)]/10)
+					bbox = detectbox.bounding_boxes[box]
+					if self.tracking_id == bbox.id:
+						center_x = round((bbox.xmin + bbox.xmax)/2)
+						center_y = round((bbox.ymin + bbox.ymax)/2)
+						distance = round(self.depth[int(center_y), int(center_x)]/10)
 
-							if distance <= 400:
-								self.x_pub.publish(center_x)
-								self.depth_pub.publish(distance)
-								rospy.loginfo('tracking target person')
-								rospy.loginfo('x: %d' % center_x)
-								rospy.loginfo('depth: %d' % distance)
-								#self.rate.sleep()
-								break
+						if distance <= 400:
+							self.x_pub.publish(center_x)
+							self.depth_pub.publish(distance)
+							rospy.loginfo('tracking target person')
+							rospy.loginfo('x: %d' % center_x)
+							rospy.loginfo('depth: %d' % distance)
+							#self.rate.sleep()
+							break
         
-				else:
-				  self.count += 1 
-
-				  if self.count > 3:
-				    self.tracking_mode = 0
-				    self.count = 0
-				  else:
-				    pass
+					else:
+						if bbox == len(detectbox.bounding_boxes):
+							self.count += 1
+							if self.count > 3:
+								self.count=0
+								self.tracking_mode = 0:
+							else:
+								pass
           
 			else:
 				self.tracking_mode = 3
