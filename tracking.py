@@ -26,7 +26,6 @@ class tracker:
 		self.rate = rospy.Rate(10)
 
 		#set subscribe
-		#self.depth_sub = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image, self.depthcallback)
 		self.bbox_sub = rospy.Subscriber('/tracked_boxes', BoundingBoxes, self.boxcallback)
 		self.depth_sub = rospy.Subscriber('/camera/align_to_depth/image_raw', Image, self.depthcallback)
 		#self.gui_sub = rospy.Subscriber('/GUI_end', bool, self.guicallback)
@@ -36,7 +35,7 @@ class tracker:
 
 		self.tracking_id = 0
 		self.tracking_mode = 0
-    self.count = 0
+		self.count = 0
 		self.depth = np.empty((480,640))
 	
 #======================================================================================================
@@ -94,37 +93,35 @@ class tracker:
 
 		#tracking_mode==2: tracksing
 		elif self.tracking_mode == 2:
-		
+			
 			if self.RFID_check == False:
-        
-        if len(detectbox.bounding_boxes) > 0:
+				if len(detectbox.bounding_boxes) > 0:
           
-          for box in range(len(detectbox.bounding_boxes)):
+         				for box in range(len(detectbox.bounding_boxes)):
             
-            bbox = detectbox.bounding_boxes[box]
-            if self.tracking_id == bbox.id:
-              rospy.loginfo('id check')
-              center_x = round((bbox.xmin + bbox.xmax)/2)
-              center_y = round((bbox.ymin + bbox.ymax)/2)
-              distance = round(self.depth[int(center_y), int(center_x)]/10)
+						bbox = detectbox.bounding_boxes[box]
+						if self.tracking_id == bbox.id:
+							center_x = round((bbox.xmin + bbox.xmax)/2)
+							center_y = round((bbox.ymin + bbox.ymax)/2)
+							distance = round(self.depth[int(center_y), int(center_x)]/10)
 
-              if distance <= 400:
-                self.x_pub.publish(center_x)
-                self.depth_pub.publish(distance)
-                rospy.loginfo('tracking target person')
-                rospy.loginfo('x: %d' % center_x)
-                rospy.loginfo('depth: %d' % distance)
-                #self.rate.sleep()
-                break
+							if distance <= 400:
+								self.x_pub.publish(center_x)
+								self.depth_pub.publish(distance)
+								rospy.loginfo('tracking target person')
+								rospy.loginfo('x: %d' % center_x)
+								rospy.loginfo('depth: %d' % distance)
+								#self.rate.sleep()
+								break
         
-        else:
-          self.count += 1 
-          
-          if self.count > 3:
-            self.tracking_mode = 0
-            self.count = 0
-           else:
-            pass
+				else:
+				  self.count += 1 
+
+				  if self.count > 3:
+				    self.tracking_mode = 0
+				    self.count = 0
+				  else:
+				    pass
           
 			else:
 				self.tracking_mode = 3
