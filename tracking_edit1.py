@@ -94,6 +94,7 @@ class tracker:
 			
 			self.tracking_mode = 2
 
+		
 		#tracking_mode==2: tracking
 		elif self.tracking_mode == 2:
 
@@ -101,9 +102,9 @@ class tracker:
 				if gui_check == 1 or gui_check == 5:
 					if len(detectbox.bounding_boxes) > 0:
           					
-            for box in range(len(detectbox.bounding_boxes)):
+						for box in range(len(detectbox.bounding_boxes)):
             
-						  bbox = detectbox.bounding_boxes[box]
+							bbox = detectbox.bounding_boxes[box]
 							if self.tracking_id == bbox.id:
 								center_x = round((bbox.xmin + bbox.xmax)/2)
 								center_y = round((bbox.ymin + bbox.ymax)/2)
@@ -134,6 +135,7 @@ class tracker:
 			else:
 				self.tracking_mode = 3
 				rospy.loginfo('Arrived!')
+
 
 		#tracking_mode==3: waiting for end of cat's motion
 		elif self.tracking_mode == 3:
