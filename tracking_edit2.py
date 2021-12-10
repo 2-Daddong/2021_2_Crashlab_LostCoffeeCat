@@ -30,10 +30,9 @@ class tracker:
 		self.depth_sub = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image, self.depthcallback)
 		#self.gui_sub = rospy.Subscriber('/gui_mode', Float32, self.guicallback)
 		#gui_mode = 2 or 5: tracking, 9: return start point (after arrived), 99: retrun start point (before start)
-		#self.cycle_sub = rospy.Subscriber('/cycle', Int32, self.cyclecallback)
 		#cycle = 1: 1 cycle end, 0: 1 cycle continue 
 		#self.rfid_sub = rospy.Subscriber('/finish', Int32, self.RFIDcallback)
-		#RFID = true: arrvied at destination, false: not arrived
+		#finish = 1: RFID on, 3: arrived start position
 
 		self.RFID_check = False #remove after
 
@@ -54,15 +53,12 @@ class tracker:
 
 
 	def RFIDcallback(self, data1):
-		self.RFID_check = data1.data
+		self.RFID_check = data1
+		self.cycle_check = data1
 
 
 	def guicallback(self, data2):
 		self.gui_check = data2.data
-
-
-	#def cyclecallback(self, data3):
-		self.cycle_check = data3.data
 
 #======================================================================================================
 
@@ -101,7 +97,7 @@ class tracker:
 		#tracking_mode==2: tracking
 		elif self.tracking_mode == 2:
 
-			if self.RFID_check == False:
+			if self.RFID_check != 1:
 				if gui_check == 1 or gui_check == 5:
           					
 					for box in range(len(detectbox.bounding_boxes)):
@@ -158,7 +154,7 @@ class tracker:
 		#tracking_mode==4: return to start position
 		else:
 	
-			if self.cycle_check == 0:
+			if self.cycle_check != 3:
 
 				#get obstacle distance array about division pixel
 				Image_width = self.depth.shape[1]
