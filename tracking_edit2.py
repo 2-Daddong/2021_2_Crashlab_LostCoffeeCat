@@ -8,7 +8,7 @@ import cv2
 
 from darknet_ros_msgs.msg import BoundingBoxes
 from darknet_ros_msgs.msg import BoundingBox
-from std_msgs.msg import Int32, Int64, Float32
+from std_msgs.msg import Int32, Int64
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -32,7 +32,7 @@ class tracker:
 		#gui_mode = 2 or 5: tracking, 9: return start point (after arrived), 99: retrun start point (before start)
 		#self.cycle_sub = rospy.Subscriber('/cycle', Int32, self.cyclecallback)
 		#cycle = 1: 1 cycle end, 0: 1 cycle continue 
-		#self.rfid_sub = rospy.Subscriber('/finish', Float32, self.RFIDcallback)
+		#self.rfid_sub = rospy.Subscriber('/finish', Int32, self.RFIDcallback)
 		#RFID = true: arrvied at destination, false: not arrived
 
 		self.RFID_check = False #remove after
