@@ -32,7 +32,7 @@ class tracker:
 		#gui_mode = 2 or 5: tracking, 9: return start point (after arrived), 99: retrun start point (before start)
 		#self.cycle_sub = rospy.Subscriber('/cycle', Int32, self.cyclecallback)
 		#cycle = 1: 1 cycle end, 0: 1 cycle continue 
-		#self.rfid_sub = rospy.Subscriber('/RFID', Float32, self.RFIDcallback)
+		#self.rfid_sub = rospy.Subscriber('/finish', Float32, self.RFIDcallback)
 		#RFID = true: arrvied at destination, false: not arrived
 
 		self.RFID_check = False #remove after
