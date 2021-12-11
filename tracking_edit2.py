@@ -30,8 +30,10 @@ class tracker:
 		self.depth_sub = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image, self.depthcallback)
 		self.gui_sub = rospy.Subscriber('/gui_mode', Int32, self.guicallback)
 		#gui_mode:1 or 5 => tracking gui, 9 => return start pose, 99 = > ignore start so return start pose
-		self.motor_sub = rospy.Subscriber('/finish', Int32, self.motorcallback)
-		#finish: 1 => RFID check, 2 => go to start position, 3 => arrived at start position
+		self.rfid_sub = rospy.Subscriber('/finish', Int32, self.RFIDcallback)
+		#finish: 1 => RFID check, 2 => go to start position
+		self.cycle_sub = rospy.Subscriber('/go_back', Int32, self.cyclecallback)
+		#go_back: 3 => arrived at start position
 
 		#variable initial
 		self.tracking_id = 0
@@ -53,13 +55,14 @@ class tracker:
 		self.depth = np.array(depth_image, dtype=np.float32)
 
 
-	def motorcallback(self, data1):
+	def RFIDcallback(self, data1):
 		self.RFID_check = data1
-		self.cycle_check = data1
+		
+	def cyclecallback(self, data2):
+		self.cycle_check = data2
 
-
-	def guicallback(self, data2):
-		self.gui_check = data2
+	def guicallback(self, data3):
+		self.gui_check = data3
 		
 
 #======================================================================================================
