@@ -8,12 +8,12 @@ import cv2
 
 from darknet_ros_msgs.msg import BoundingBoxes
 from darknet_ros_msgs.msg import BoundingBox
-from std_msgs.msg import Int32, Int64
+from std_msgs.msg import Int64, Int32
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
 
-#===================================================================================
+#===========================================================================
 
 
 class tracker:
@@ -28,22 +28,23 @@ class tracker:
 		#set subscribe
 		self.bbox_sub = rospy.Subscriber('/tracked_boxes', BoundingBoxes, self.boxcallback)
 		self.depth_sub = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image, self.depthcallback)
-		#self.gui_sub = rospy.Subscriber('/gui_mode', Float32, self.guicallback)
-		#gui_mode = 2 or 5: tracking, 9: return start point (after arrived), 99: retrun start point (before start)
-		#cycle = 1: 1 cycle end, 0: 1 cycle continue 
-		#self.rfid_sub = rospy.Subscriber('/finish', Int32, self.RFIDcallback)
-		#finish = 1: RFID on, 3: arrived start position
+		self.gui_sub = rospy.Subscriber('/gui_mode', Int32, self.guicallback)
+		#gui_mode:1 or 5 => tracking gui, 9 => return start pose, 99 = > ignore start so return start pose
+		self.motor_sub = rospy.Subscriber('/finish', Int32, self.motorcallback)
+		#finish: 1 => RFID check, 2 => go to start position, 3 => arrived at start position
 
-		self.RFID_check = False #remove after
-
+		#variable initial
 		self.tracking_id = 0
 		self.tracking_mode = 0
-		self.person_check = False
 		self.distance1 = 0
 		self.count = 0
+		self.gui_check=0
+		self.RFID_check=0
+		self.cycle_check=0
 		self.depth = np.empty((480,640))
-	
-#======================================================================================
+
+		
+#======================================================================================================
 
 	def depthcallback(self, Image):
 		self.bridge = CvBridge()
@@ -52,23 +53,22 @@ class tracker:
 		self.depth = np.array(depth_image, dtype=np.float32)
 
 
-	def RFIDcallback(self, data1):
+	def motorcallback(self, data1):
 		self.RFID_check = data1
 		self.cycle_check = data1
 
 
 	def guicallback(self, data2):
-		self.gui_check = data2.data
+		self.gui_check = data2
+		
 
 #======================================================================================================
 
 	def boxcallback(self, detectbox):
 		
-		self.person_check = True
-
 		#tracking_mode==0: roaming
 		if self.tracking_mode == 0:
-				
+			
 			depths=[]
 			for box in range(len(detectbox.bounding_boxes)):
 				bbox = detectbox.bounding_boxes[box]
@@ -83,7 +83,7 @@ class tracker:
 				depths.sort(key=lambda x: (x[0], x[1]))
 	
 				#decide the closest person for tracking target (depth boundary = 160cm)
-				if depths[0][0] < 180:
+				if depths[0][0] < 160:
 					self.tracking_id = depths[0][1]
 					self.distance1 = depths[0][0]
 					self.tracking_mode = 1
@@ -94,62 +94,73 @@ class tracker:
 			
 			self.tracking_mode = 2
 
-		#tracking_mode==2: tracking
+		#tracking_mode==2: tracksing
 		elif self.tracking_mode == 2:
-
+			
 			if self.RFID_check != 1:
-				if gui_check == 1 or gui_check == 5:
-          					
+				if self.gui_check == 1 or self.gui_check == 5:
+
 					for box in range(len(detectbox.bounding_boxes)):
-            
+
 						bbox = detectbox.bounding_boxes[box]
+
 						if self.tracking_id == bbox.id:
 							center_x = round((bbox.xmin + bbox.xmax)/2)
 							center_y = round((bbox.ymin + bbox.ymax)/2)
 							distance2 = self.distance1
-							distance = round(self.depth[int(center_y), int(center_x)]/10)
+							distance = round(self.depth[int(center_y), int(center_x)]/10)					
 							self.distance1 = distance
-
-							if abs(distance2 - self.distance1) <= 120 and self.distance1 != 0:
+							
+							#ignor huge or 0 current distance
+							if abs(self.distance1- distance2) <= 180 and self.distance1 != 0:
+							
 								self.x_pub.publish(center_x)
 								self.depth_pub.publish(distance)
-								rospy.loginfo('tracking target person')
+
+								rospy.loginfo(self.tracking_id)
 								rospy.loginfo('x: %d' % center_x)
 								rospy.loginfo('depth: %d' % distance)
+								rospy.loginfo('gui: %d' % self.gui_check)
 								break
+
 							else:
-								rospy.loginfo('assume outlier value!')
+								rospy.loginfo('large moving points')
         
 						else:
-							self.count += 1 
 
-							if self.count > 3:
-								self.tracking_mode = 0
-				    				self.count = 0
-								rospy.loginfo('return mode 0')
-							else:
-								rospy.loginfo('watiting target person')
+							if box+1 == len(detectbox.bounding_boxes):
+								self.count += 1 
 
-				elif gui_check == 99:
+								if self.count > 3:
+									self.tracking_mode = 0
+									self.count = 0
+									rospy.loginfo('return mode 0')				
+								else:
+									rospy.loginfo('waiting target person')
+
+				#target person ignores start => return start position
+				elif self.gui_check == 99:
 					tracking_mode = 4
-					rospy.loginfo('refuse')
+					rospy.loginfo('refuse help')
+					rospy.loginfo(self.gui_check)
 
 				else:
-					pass
-
-
+					pass	
+          
 			else:
 				self.tracking_mode = 3
 				rospy.loginfo('Arrived!')
+				rospy.loginfo(self.gui_check)
 
 		#tracking_mode==3: waiting for end of cat's motion
 		elif self.tracking_mode == 3:
 			
 			if self.gui_check != 9:
-				pass
+				rospy.loginfo(self.gui_check)
 			else:
 				self.tracking_mode = 4
-				rospy.loginfo('return mode 4')
+				rospy.loginfo('return mode')
+				rospy.loginfo(self.gui_check)
 		
 		#tracking_mode==4: return to start position
 		else:
@@ -163,34 +174,30 @@ class tracker:
 
 				for x in range(4):
  					for y in range(3):
-					
+										
 						self.distance = round(self.depth[Image_height/3/2+(Image_height/3)*y, Image_width/4/2+(Image_width/4)*x]/10)
 						obstacle_depth.append(self.distance)
 			
 				obstacle_depth.sort()
 				obstacle_distance = obstacle_depth[0]
 				self.depth_pub.publish(obstacle_distance)
+	
+				#self.rate.sleep()
 				
-
 			else:
-				self.tracking_mode == 0 
-				rospy.loginfo('restart scenario')
+				self.tracking_mode == 0
+				rospy.loginfo('restart scenario~')
 
-	#case that didn't sub /tracked_boxes
-	def no_sub_bbox(self):
-
-		rospy.loginfo(self.person_check)
-
-		if self.person_check == True:
-			pass
-		else:
-			trash_x = -1
-			trash_dist = 0
-			self.x_pub.publish(trash_x)
-			self.depth_pub.publish(trash_dist)
-			rospy.loginfo('No sub bbox: pub trash value')
-		
-		self.person_check = False
+	#def no_sub_bbox(self):
+	#	if self.person_check == True:
+	#		rospy.loginfo('pass')
+	#	else:
+	#		trash_x = -1
+	#		trash_dist = 0
+	#		self.x_pub.publish(trash_x)
+	#		self.depth_pub.publish(trash_dist)
+	#		rospy.loginfo('no sub')
+							
 
 #=========================================================================================
 
@@ -200,8 +207,10 @@ if __name__ == '__main__':
 	
 	tracker()
 
-	try:
-		rospin()
-
+	#while not rospy.is_shutdown():	
+	try:			
+			#a.no_sub_bbox()
+			#a.rate.sleep()
+		rospy.spin()
 	except (rospy.ROSInterruptException, SystemExit, KeyboardInterrupt):
 		sys.exit(0)
