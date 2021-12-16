@@ -67,30 +67,15 @@ class tracker:
 		
 
 #======================================================================================================
-
+		
 	def boxcallback(self, detectbox):
-		self.detect = BoundingBoxes()
-		
-		for box in range(len(detectbox.bounding_boxes)):
-                	bbox = self.detect[box]
-			db = BoundingBox()
-                	db.probability=bbox.probability
-                	db.xmin = bbox.xmin
-                	db.ymin = bbox.ymin
-                	db.xmax = bbox.xmax
-                	db.ymax = bbox.ymax
-              		db.id = bbox.id
-                	db.Class = bbox.Class
-                	self.detect.bounding_boxes.append(db)
-		
-	def tracking(self):
 		
 		#tracking_mode==0: roaming
 		if self.tracking_mode == 0:
 			
 			depths=[]
-			for box in range(len(self.detect.bounding_boxes)):
-				bbox = self.detect.bounding_boxes[box]
+			for box in range(len(detectbox.bounding_boxes)):
+				bbox = detectbox.bounding_boxes[box]
 				center_x = round((bbox.xmin + bbox.xmax)/2)
 				center_y = round((bbox.ymin + bbox.ymax)/2)
 				distance = round(self.depth[int(center_y), int(center_x)]/10)
@@ -119,9 +104,9 @@ class tracker:
 			if self.RFID_check != 1:
 				if self.gui_check == 1 or self.gui_check == 5:
 
-					for box in range(len(self.detect.bounding_boxes)):
+					for box in range(len(detectbox.bounding_boxes)):
 
-						bbox = self.detectbox.bounding_boxes[box]
+						bbox = detectbox.bounding_boxes[box]
 
 						if self.tracking_id == bbox.id:
 							center_x = round((bbox.xmin + bbox.xmax)/2)
@@ -147,7 +132,7 @@ class tracker:
         
 						else:
 
-							if box+1 == len(self.detectbox.bounding_boxes):
+							if box+1 == len(detectbox.bounding_boxes):
 								self.count += 1 
 
 								if self.count > 3:
@@ -159,7 +144,7 @@ class tracker:
 
 				#target person ignores start => return start position
 				elif self.gui_check == 99:
-					tracking_mode = 4
+					self.tracking_mode = 4
 					rospy.loginfo('refuse help')
 					rospy.loginfo(self.gui_check)
 
@@ -213,12 +198,10 @@ if __name__ == '__main__':
 	
 	rospy.init_node('vision', anonymous=True)
 	
-	a=tracker()
+	tracker()
 
-	while not rospy.is_shutdown():	
-		try:			
-			a.tracking()
-			a.rate.sleep()
-		#rospy.spin()
-		except (rospy.ROSInterruptException, SystemExit, KeyboardInterrupt):
-			sys.exit(0)
+	try:			
+		rospy.spin()
+		
+	except (rospy.ROSInterruptException, SystemExit, KeyboardInterrupt):
+		sys.exit(0)
