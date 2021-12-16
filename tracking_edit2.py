@@ -40,7 +40,7 @@ class tracker:
 		self.tracking_mode = 0
 		self.distance1 = 0
 		self.count = 0
-		self.gui_check=0
+		self.gui_check=1
 		self.RFID_check=0
 		self.cycle_check=0
 		self.depth = np.empty((480,640))
@@ -191,17 +191,7 @@ class tracker:
 				self.tracking_mode == 0
 				rospy.loginfo('restart scenario~')
 
-	#def no_sub_bbox(self):
-	#	if self.person_check == True:
-	#		rospy.loginfo('pass')
-	#	else:
-	#		trash_x = -1
-	#		trash_dist = 0
-	#		self.x_pub.publish(trash_x)
-	#		self.depth_pub.publish(trash_dist)
-	#		rospy.loginfo('no sub')
 							
-
 #=========================================================================================
 
 if __name__ == '__main__':
@@ -209,11 +199,8 @@ if __name__ == '__main__':
 	rospy.init_node('vision', anonymous=True)
 	
 	tracker()
-
-	#while not rospy.is_shutdown():	
+	
 	try:			
-			#a.no_sub_bbox()
-			#a.rate.sleep()
 		rospy.spin()
 	except (rospy.ROSInterruptException, SystemExit, KeyboardInterrupt):
 		sys.exit(0)
