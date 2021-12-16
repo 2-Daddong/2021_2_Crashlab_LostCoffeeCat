@@ -44,6 +44,7 @@ class tracker:
 		self.RFID_check=0
 		self.cycle_check=0
 		self.depth = np.empty((480,640))
+		
 
 		
 #======================================================================================================
@@ -56,25 +57,40 @@ class tracker:
 
 
 	def RFIDcallback(self, data1):
-		self.RFID_check = data1
+		self.RFID_check = data1.data
 		
 	def cyclecallback(self, data2):
-		self.cycle_check = data2
+		self.cycle_check = data2.data
 
 	def guicallback(self, data3):
-		self.gui_check = data3
+		self.gui_check = data3.data
 		
 
 #======================================================================================================
 
 	def boxcallback(self, detectbox):
+		self.detect = BoundingBoxes()
+		
+		for box in range(len(detectbox.bounding_boxes)):
+                	bbox = self.detect[box]
+			db = BoundingBox()
+                	db.probability=bbox.probability
+                	db.xmin = bbox.xmin
+                	db.ymin = bbox.ymin
+                	db.xmax = bbox.xmax
+                	db.ymax = bbox.ymax
+              		db.id = bbox.id
+                	db.Class = bbox.Class
+                	self.detect.bounding_boxes.append(db)
+		
+	def tracking(self):
 		
 		#tracking_mode==0: roaming
 		if self.tracking_mode == 0:
 			
 			depths=[]
-			for box in range(len(detectbox.bounding_boxes)):
-				bbox = detectbox.bounding_boxes[box]
+			for box in range(len(self.detect.bounding_boxes)):
+				bbox = self.detect.bounding_boxes[box]
 				center_x = round((bbox.xmin + bbox.xmax)/2)
 				center_y = round((bbox.ymin + bbox.ymax)/2)
 				distance = round(self.depth[int(center_y), int(center_x)]/10)
@@ -103,9 +119,9 @@ class tracker:
 			if self.RFID_check != 1:
 				if self.gui_check == 1 or self.gui_check == 5:
 
-					for box in range(len(detectbox.bounding_boxes)):
+					for box in range(len(self.detect.bounding_boxes)):
 
-						bbox = detectbox.bounding_boxes[box]
+						bbox = self.detectbox.bounding_boxes[box]
 
 						if self.tracking_id == bbox.id:
 							center_x = round((bbox.xmin + bbox.xmax)/2)
@@ -119,11 +135,6 @@ class tracker:
 							
 								self.x_pub.publish(center_x)
 								self.depth_pub.publish(distance)
-
-                old_x = center_x
-                old_y = center_y
-                old_d = distance
-                
 								rospy.loginfo(self.tracking_id)
 								rospy.loginfo('x: %d' % center_x)
 								rospy.loginfo('depth: %d' % distance)
@@ -132,10 +143,11 @@ class tracker:
 
 							else:
 								rospy.loginfo('large moving points')
+								break
         
 						else:
 
-							if box+1 == len(detectbox.bounding_boxes):
+							if box+1 == len(self.detectbox.bounding_boxes):
 								self.count += 1 
 
 								if self.count > 3:
@@ -169,25 +181,6 @@ class tracker:
 				rospy.loginfo('return mode')
 				rospy.loginfo(self.gui_check)
 		
-    elif self.tracking_mode == 5:
-			
-			targets=[]
-			for box in range(len(detectbox.bounding_boxes)):
-				bbox = detectbox.bounding_boxes[box]
-				center_x = round((bbox.xmin + bbox.xmax)/2)
-				center_y = round((bbox.ymin + bbox.ymax)/2)
-				distance = round(self.depth[int(center_y), int(center_x)]/10)
-
-        if abs(old_x - center_x) < 100 and abs(old_y - center_y) < 80 and abs(old_d - distance) < 160:
-          similar = abs(old_x - center_x) + abs(old_y - center_y) + abs(old_d - distance)
-          targets.append([similar, bbox.id])
-      
-      #decide the most similar person for checking pre_tracking target
-      targets.sort(key=lambda x: (x[0], x[1]))
-    
-			self.tracking_id = targets[0][1]
-			self.tracking_mode = 1
-			rospy.loginfo(self.tracking_id)
     
 		#tracking_mode==4: return to start position
 		else:
@@ -208,8 +201,6 @@ class tracker:
 				obstacle_depth.sort()
 				obstacle_distance = obstacle_depth[0]
 				self.depth_pub.publish(obstacle_distance)
-	
-				#self.rate.sleep()
 				
 			else:
 				self.tracking_mode == 0
@@ -222,12 +213,12 @@ if __name__ == '__main__':
 	
 	rospy.init_node('vision', anonymous=True)
 	
-	tracker()
+	a=tracker()
 
-	#while not rospy.is_shutdown():	
-	try:			
-			#a.no_sub_bbox()
-			#a.rate.sleep()
-		rospy.spin()
-	except (rospy.ROSInterruptException, SystemExit, KeyboardInterrupt):
-		sys.exit(0)
+	while not rospy.is_shutdown():	
+		try:			
+			a.tracking()
+			a.rate.sleep()
+		#rospy.spin()
+		except (rospy.ROSInterruptException, SystemExit, KeyboardInterrupt):
+			sys.exit(0)
