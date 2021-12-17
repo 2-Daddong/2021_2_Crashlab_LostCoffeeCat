@@ -218,6 +218,7 @@ class tracker:
 				
 			else:
 				self.tracking_mode = 0
+				self.cycle_check = 0
 				rospy.loginfo('restart scenario~')
 
 
