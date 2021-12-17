@@ -208,12 +208,13 @@ class tracker:
 						obstacle_depth.append(self.distance)
 			
 				obstacle_depth.sort()
-				obstacle_distance = obstacle_depth[0]
-				if obstacle_distance != 0:
-					self.depth_pub.publish(obstacle_distance)
-					rospy.loginfo('obstacle dist: %d' % obstacle_distance)
+				if obstacle_depth[0] == 0:
+					obstacle_distance = obstacle_depth[1]
 				else:
-					pass
+					obstacle_distance = obstacle_depth[0]
+				
+				self.depth_pub.publish(obstacle_distance)
+				rospy.loginfo('obstacle dist: %d' % obstacle_distance)
 				
 			else:
 				self.tracking_mode = 0
