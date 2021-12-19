@@ -40,7 +40,7 @@ class tracker:
 		self.tracking_mode = 0
 		self.distance1 = 0
 		self.count = 0
-		self.gui_check=1
+		self.gui_check=0
 		self.RFID_check=0
 		self.cycle_check=0
 		self.depth = np.empty((480,640))
@@ -89,7 +89,7 @@ class tracker:
 	def tracking(self):
 		
 		#tracking_mode==0: roaming
-		if self.tracking_mode == 0:
+		if self.tracking_mode == 0 and self.gui_check == 1:
 
 			if self.detect_check == 1:
 				self.detect_check = 0
@@ -107,7 +107,7 @@ class tracker:
 					depths.sort(key=lambda x: (x[0], x[1]))
 	
 					#decide the closest person for tracking target (depth boundary = 160cm)
-					if depths[0][0] < 160:
+					if depths[0][0] < 200:
 						self.tracking_id = depths[0][1]
 						self.distance1 = depths[0][0]
 						self.tracking_mode = 1
@@ -163,7 +163,7 @@ class tracker:
 									if self.count > 3:
 										self.tracking_mode = 0
 										self.count = 0
-										rospy.loginfo('return mode 5')				
+										rospy.loginfo('return mode 0')				
 									else:
 										rospy.loginfo('waiting target person')
 
@@ -184,7 +184,7 @@ class tracker:
 		#tracking_mode==3: waiting for end of cat's motion
 		elif self.tracking_mode == 3:
 			
-			if self.gui_check != 9:
+			if self.gui_check != 10:
 				rospy.loginfo('cat motion')
 			else:
 				self.tracking_mode = 4
@@ -193,33 +193,36 @@ class tracker:
     
 		#tracking_mode==4: return to start position
 		else:
-	
-			if self.cycle_check != 3:
-
-				#get obstacle distance array about division pixel
-				Image_width = self.depth.shape[1]
-				Image_height = self.depth.shape[0]
-				obstacle_depth = []
-
-				for x in range(4):
- 					for y in range(3):
-										
-						self.distance = round(self.depth[Image_height/3/2+(Image_height/3)*y, Image_width/4/2+(Image_width/4)*x]/10)
-						obstacle_depth.append(self.distance)
+			if self.gui_check == 0:
+				pass
 			
-				obstacle_depth.sort()
-				if obstacle_depth[0] == 0:
-					obstacle_distance = obstacle_depth[1]
-				else:
-					obstacle_distance = obstacle_depth[0]
-				
-				self.depth_pub.publish(obstacle_distance)
-				rospy.loginfo('obstacle dist: %d' % obstacle_distance)
-				
 			else:
-				self.tracking_mode = 0
-				self.cycle_check = 0
-				rospy.loginfo('restart scenario~')
+				if self.cycle_check != 3:
+
+					#get obstacle distance array about division pixel
+					Image_width = self.depth.shape[1]
+					Image_height = self.depth.shape[0]
+					obstacle_depth = []
+
+					for x in range(4):
+ 						for y in range(3):
+										
+							self.distance = round(self.depth[Image_height/3/2+(Image_height/3)*y, Image_width/4/2+(Image_width/4)*x]/10)
+							obstacle_depth.append(self.distance)
+			
+					obstacle_depth.sort()
+					if obstacle_depth[0] == 0:
+						obstacle_distance = obstacle_depth[1]
+					else:
+						obstacle_distance = obstacle_depth[0]
+				
+					self.depth_pub.publish(obstacle_distance)
+					rospy.loginfo('obstacle dist: %d' % obstacle_distance)
+				
+				else:
+					self.tracking_mode = 0
+					self.cycle_check = 0
+					rospy.loginfo('restart scenario~')
 
 
 #=========================================================================================
@@ -228,12 +231,12 @@ if __name__ == '__main__':
 	
 	rospy.init_node('vision', anonymous=True)
 	
-	a=tracker()
+	cat=tracker()
 
 	while not rospy.is_shutdown():	
 		try:			
-			a.tracking()
-			a.rate.sleep()
+			cat.tracking()
+			cat.rate.sleep()
 		
 		except (rospy.ROSInterruptException, SystemExit, KeyboardInterrupt):
 			sys.exit(0)
