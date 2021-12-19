@@ -89,29 +89,35 @@ class tracker:
 	def tracking(self):
 		
 		#tracking_mode==0: roaming
-		if self.tracking_mode == 0 and self.gui_check == 1:
+		if self.tracking_mode == 0:
+			
+			#detection possible!
+			if self.gui_check != 0:
 
-			if self.detect_check == 1:
-				self.detect_check = 0
-				depths=[]
-				for box in range(len(self.detect.bounding_boxes)):
-					bbox = self.detect.bounding_boxes[box]
-					center_x = round((bbox.xmin + bbox.xmax)/2)
-					center_y = round((bbox.ymin + bbox.ymax)/2)
-					distance = round(self.depth[int(center_y), int(center_x)]/10)
-					depths.append([distance, bbox.id])
+				if self.detect_check == 1:
+					self.detect_check = 0
+					depths=[]
+					for box in range(len(self.detect.bounding_boxes)):
+						bbox = self.detect.bounding_boxes[box]
+						center_x = round((bbox.xmin + bbox.xmax)/2)
+						center_y = round((bbox.ymin + bbox.ymax)/2)
+						distance = round(self.depth[int(center_y), int(center_x)]/10)
+						depths.append([distance, bbox.id])
 
-				#choose the closest person if detected is more than one
-				if len(depths) > 0:
-					#sort array in ascending - 1)distance 2)id
-					depths.sort(key=lambda x: (x[0], x[1]))
+					#choose the closest person if detected is more than one
+					if len(depths) > 0:
+						#sort array in ascending - 1)distance 2)id
+						depths.sort(key=lambda x: (x[0], x[1]))
 	
-					#decide the closest person for tracking target (depth boundary = 160cm)
-					if depths[0][0] < 200:
-						self.tracking_id = depths[0][1]
-						self.distance1 = depths[0][0]
-						self.tracking_mode = 1
-						rospy.loginfo(self.tracking_id)
+						#decide the closest person for tracking target (depth boundary = 160cm)
+						if depths[0][0] < 200:
+							self.tracking_id = depths[0][1]
+							self.distance1 = depths[0][0]
+							self.tracking_mode = 1
+							rospy.loginfo(self.tracking_id)
+			#default before starting!				
+			else:
+				pass
 		
 		#tracking_mode==1: check target
 		elif self.tracking_mode == 1:
@@ -178,7 +184,6 @@ class tracker:
           
 			else:
 				self.tracking_mode = 3
-				self.RFID_check = 0
 				rospy.loginfo('Arrived!')
 
 		#tracking_mode==3: waiting for end of cat's motion
@@ -193,36 +198,35 @@ class tracker:
     
 		#tracking_mode==4: return to start position
 		else:
-			if self.gui_check == 0:
-				pass
-			
-			else:
-				if self.cycle_check != 3:
 
-					#get obstacle distance array about division pixel
-					Image_width = self.depth.shape[1]
-					Image_height = self.depth.shape[0]
-					obstacle_depth = []
+			if self.cycle_check != 3:
 
-					for x in range(4):
- 						for y in range(3):
+				#get obstacle distance array about division pixel
+				Image_width = self.depth.shape[1]
+				Image_height = self.depth.shape[0]
+				obstacle_depth = []
+
+				for x in range(4):
+ 					for y in range(3):
 										
-							self.distance = round(self.depth[Image_height/3/2+(Image_height/3)*y, Image_width/4/2+(Image_width/4)*x]/10)
-							obstacle_depth.append(self.distance)
+						self.distance = round(self.depth[Image_height/3/2+(Image_height/3)*y, Image_width/4/2+(Image_width/4)*x]/10)
+						obstacle_depth.append(self.distance)
 			
-					obstacle_depth.sort()
-					if obstacle_depth[0] == 0:
-						obstacle_distance = obstacle_depth[1]
-					else:
-						obstacle_distance = obstacle_depth[0]
-				
-					self.depth_pub.publish(obstacle_distance)
-					rospy.loginfo('obstacle dist: %d' % obstacle_distance)
-				
+				obstacle_depth.sort()
+				if obstacle_depth[0] == 0:
+					obstacle_distance = obstacle_depth[1]
 				else:
-					self.tracking_mode = 0
-					self.cycle_check = 0
-					rospy.loginfo('restart scenario~')
+					obstacle_distance = obstacle_depth[0]
+				
+				self.depth_pub.publish(obstacle_distance)
+				rospy.loginfo('obstacle dist: %d' % obstacle_distance)
+				
+			else:
+				self.tracking_mode = 0
+				self.cycle_check = 0
+				self.RFID_check = 0
+				self.gui_check = 0
+				rospy.loginfo('restart scenario~')
 
 
 #=========================================================================================
